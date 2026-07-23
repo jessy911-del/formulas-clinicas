@@ -1,0 +1,566 @@
+/* =========================================================
+   TOKENS — identidad visual del hub de fórmulas clínicas
+
+   Las variables --algo definidas aquí en :root (la raíz del
+   documento) funcionan como "constantes" de diseño: se escribe
+   el color/tamaño UNA sola vez aquí, y en el resto del archivo
+   se usa var(--color-primario) en vez de escribir "#1f5f5b" cada
+   vez. Cambiar la paleta completa de la app es, en teoría, tan
+   simple como cambiar estas líneas.
+   ========================================================= */
+:root {
+  --color-primario: #1f5f5b;      /* teal profundo — cabecera, acentos fuertes */
+  --color-primario-suave: #2d7873;
+  --color-secundario: #a8c9b8;    /* menta suave — apoyo, fondos de icono */
+  --color-fondo: #f7f3ec;         /* papel cálido */
+  --color-superficie: #ffffff;
+  --color-texto: #262622;
+  --color-texto-suave: #6b6b63;
+  --color-acento: #c9922f;        /* dorado clínico — usar con moderación */
+  --color-borde: #e6e0d4;
+
+  --fuente-display: 'Fraunces', serif;
+  --fuente-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --radio: 18px;
+  --sombra: 0 4px 16px rgba(38, 38, 34, 0.06);
+}
+
+* { box-sizing: border-box; } /* padding y border ya no se suman al ancho/alto que uno define */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font-family: var(--fuente-ui);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden; /* nada de scroll en html/body — cada pantalla controla su propio scroll interno */
+}
+
+body {
+  max-width: 480px;
+  margin: 0 auto;
+  /* 100vh a veces incluye el espacio detrás de la barra del navegador
+     en el celular (y el contenido queda tapado). 100svh ("small
+     viewport height") es la altura garantizada aunque esa barra esté
+     visible — la primera línea es un respaldo para navegadores viejos
+     que no conocen "svh" todavía; si lo entienden, la segunda gana. */
+  height: 100vh;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Marca de agua del logo — fondo fijo, tenue, detrás de toda la
+   app. Incrustada en base64 (no un archivo aparte) para que
+   funcione igual en los 4 archivos y en la versión de un solo
+   archivo para móvil. position:absolute (no fixed) porque el
+   body tiene overflow:hidden, que puede recortar los elementos
+   fixed — con absolute queda ligado al propio tamaño del body,
+   que en móvil ya cubre toda la pantalla. z-index negativo: pinta
+   detrás de cualquier pantalla o tarjeta, sin interferir con nada. */
+body::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImZvbmRvIiB4MT0iMCIgeTE9IjAiIHgyPSI1MTIiIHkyPSI1MTIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMmQ3ODczIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzEyM2YzYyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idHVibyIgeDE9IjY0IiB5MT0iNjQiIHgyPSI0MjYiIHkyPSI4NSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZmZmZmYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIwLjYiIHN0b3AtY29sb3I9IiNmM2Q5YTQiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZThiNTYzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJwZWNobyIgY3g9IjAuMzUiIGN5PSIwLjMiIHI9IjAuNzUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZmZmZmYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZDhlOGUyIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogIDwvZGVmcz4KCiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMjAiIGZpbGw9InVybCgjZm9uZG8pIi8+CiAgPGVsbGlwc2UgY3g9IjEyOCIgY3k9IjExMSIgcng9IjE3OSIgcnk9IjEwMiIgZmlsbD0iI2ZmZmZmZiIgb3BhY2l0eT0iMC4wNiIvPgogIDxjaXJjbGUgY3g9IjQwNSIgY3k9Ijg1IiByPSI1NiIgZmlsbD0iI2U4YjU2MyIgb3BhY2l0eT0iMC4yMiIvPgoKICA8cGF0aCBkPSJNODUsODUgQzczLDE3OSA5NCwyMzAgMTU0LDI0NyBMMTU0LDI5MCIgc3Ryb2tlPSJ1cmwoI3R1Ym8pIiBzdHJva2Utd2lkdGg9IjMwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIGZpbGw9Im5vbmUiLz4KICA8cGF0aCBkPSJNMTU0LDI0NyBDMjIyLDI2MCAyNzMsMjQzIDI5OSwxODggQzMyNCwxMzIgMzU4LDk0IDQxMCw4NSIgc3Ryb2tlPSJ1cmwoI3R1Ym8pIiBzdHJva2Utd2lkdGg9IjMwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIGZpbGw9Im5vbmUiLz4KICA8Y2lyY2xlIGN4PSI4NSIgY3k9Ijg1IiByPSIyNiIgZmlsbD0idXJsKCN0dWJvKSIvPgoKICA8Y2lyY2xlIGN4PSIxNTQiIGN5PSIzNDEiIHI9IjU2IiBmaWxsPSJ1cmwoI3BlY2hvKSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjkiLz4KICA8ZWxsaXBzZSBjeD0iMTM3IiBjeT0iMzI0IiByeD0iMTciIHJ5PSIxMyIgZmlsbD0iI2ZmZmZmZiIgb3BhY2l0eT0iMC45Ii8+CgogIDxjaXJjbGUgY3g9IjQxMCIgY3k9Ijg1IiByPSIzMCIgZmlsbD0iI2U4YjU2MyIvPgogIDxjaXJjbGUgY3g9IjQxMCIgY3k9Ijg1IiByPSIxMyIgZmlsbD0iI2ZmZmZmZiIvPgo8L3N2Zz4K');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 95%;
+  opacity: 0.22;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Todo el contenido real de la app debe pintarse encima de la
+   marca de agua (que quedó en z-index:0 dentro del stacking
+   context del body). */
+.pantalla {
+  position: relative;
+  z-index: 1;
+}
+
+
+/* =========================================================
+   SISTEMA DE PANTALLAS
+   ========================================================= */
+.pantalla {
+  display: none;
+  flex-direction: column;
+  height: 100vh;
+  height: 100svh;
+  width: 100%;
+  animation: aparecer 0.22s ease-out;
+}
+.pantalla.activa {
+  display: flex;
+}
+#pantalla-menu {
+  overflow-y: auto;
+}
+#pantalla-formula {
+  overflow: hidden;
+}
+@keyframes aparecer {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================
+   PANTALLA: MENÚ / HUB
+   ========================================================= */
+.cabecera-hub {
+  background: var(--color-primario);
+  padding: 32px 24px 40px;
+  border-radius: 0 0 28px 28px;
+}
+.cabecera-eyebrow {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-secundario);
+}
+.cabecera-titulo {
+  margin: 0;
+  font-family: var(--fuente-display);
+  font-weight: 600;
+  font-size: clamp(26px, 8vw, 34px);
+  color: #ffffff;
+}
+
+.lista-formulas {
+  flex: 1;
+  min-height: 0;
+  padding: 20px 20px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+}
+
+.tarjeta-formula {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  padding: 22px;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  font-family: var(--fuente-ui);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.tarjeta-formula:active {
+  transform: scale(0.98);
+}
+.tarjeta-formula:hover {
+  box-shadow: 0 6px 20px rgba(38, 38, 34, 0.1);
+}
+
+.tarjeta-icono {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(31, 95, 91, 0.08);
+  color: var(--color-primario);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tarjeta-icono svg { width: 30px; height: 30px; }
+
+.tarjeta-texto {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.tarjeta-nombre {
+  font-family: var(--fuente-display);
+  font-weight: 600;
+  font-size: 21px;
+  color: var(--color-texto);
+}
+.tarjeta-detalle {
+  font-size: 14px;
+  color: var(--color-texto-suave);
+}
+
+.tarjeta-flecha {
+  color: var(--color-primario);
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.tarjeta-formula--proxima {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.tarjeta-formula--proxima:active {
+  transform: none;
+}
+.tarjeta-etiqueta {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-acento);
+  background: rgba(201, 146, 47, 0.12);
+  padding: 5px 10px;
+  border-radius: 100px;
+}
+
+.pie-hub {
+  padding: 18px 28px 28px;
+  text-align: center;
+}
+.pie-hub p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-texto-suave);
+  line-height: 1.5;
+}
+
+/* =========================================================
+   PANTALLA: DETALLE DE FÓRMULA (estructura base)
+   ========================================================= */
+.cabecera-formula {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-borde);
+  background: var(--color-superficie);
+}
+.btn-volver {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-fondo);
+  color: var(--color-primario);
+  font-size: 18px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.btn-volver svg {
+  width: 18px;
+  height: 18px;
+}
+.titulo-formula {
+  flex: 1;
+  text-align: center;
+  margin: 0;
+  font-family: var(--fuente-display);
+  font-weight: 600;
+  font-size: 20px;
+}
+
+.contenido-formula {
+  flex: 1;
+  min-height: 0;
+  padding: 14px 20px 10px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.placeholder-formula {
+  color: var(--color-texto-suave);
+  text-align: center;
+  margin-top: 60px;
+  font-size: 14px;
+}
+
+/* =========================================================
+   PANTALLA DE FÓRMULA — contenido interno (Rabito y similares)
+   ========================================================= */
+.pantalla-formula-int {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+}
+
+.grupo-resultado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Selector de sexo pequeño (solo se usa dentro de campos-medidas ahora) */
+.selector-sexo {
+  display: flex;
+  gap: 10px;
+}
+.opcion-sexo {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-borde);
+  background: var(--color-superficie);
+  color: var(--color-texto-suave);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.opcion-sexo svg {
+  width: 18px;
+  height: 30px;
+}
+.opcion-sexo.activo {
+  border-color: var(--color-primario);
+  background: var(--color-primario);
+  color: #ffffff;
+}
+
+/* Selector tipo "segmented control", integrado como un campo más
+   (sexo, GMFCS) — misma altura y estilo que los inputs de texto,
+   para que se vea claramente como un dato por llenar. */
+.campo-segmentado {
+  display: flex;
+  border: 1.5px solid var(--color-borde);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-superficie);
+}
+.opcion-segmentada {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 4px;
+  border: none;
+  border-left: 1.5px solid var(--color-borde);
+  background: transparent;
+  color: var(--color-texto-suave);
+  font-family: var(--fuente-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.opcion-segmentada:first-child {
+  border-left: none;
+}
+.opcion-segmentada svg {
+  width: 13px;
+  height: 22px;
+}
+.opcion-segmentada.activo {
+  background: var(--color-primario);
+  color: #ffffff;
+}
+.descripcion-gmfcs {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--color-texto-suave);
+  text-align: center;
+  min-height: 14px;
+}
+
+/* Arco de resultado
+   clamp(mínimo, preferido, máximo): el tamaño "preferido" (46vh,
+   8vh, etc. = % de la altura de pantalla) se usa mientras quede
+   entre el mínimo y el máximo — así el arco y el número se ven
+   proporcionales tanto en un celular chico como en uno grande,
+   sin quedar nunca demasiado chico ni demasiado enorme. */
+.arco-resultado {
+  position: relative;
+  width: clamp(190px, 46vh, 260px);
+  max-width: 100%;
+}
+.arco-svg {
+  width: 100%;
+  display: block;
+}
+/* Línea gris de fondo, siempre visible detrás del progreso o las zonas */
+.arco-fondo {
+  fill: none;
+  stroke: var(--color-borde);
+  stroke-width: 14;
+  stroke-linecap: round;
+}
+/* Usada en Rabito/PC: su stroke-dashoffset lo controla app.js en
+   cada actualizar(), para que se vea "llenar" según cuántos campos
+   ya se completaron (ver el comentario de este truco en app.js). */
+.arco-progreso {
+  fill: none;
+  stroke: var(--color-primario);
+  stroke-width: 14;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.25s ease;
+}
+/* Usada en IMC/TFG: cada <path class="arco-zona"> lo genera app.js
+   (construirTresZonasSvg) con un color distinto, para los 3 tercios */
+.arco-zona {
+  fill: none;
+  stroke-width: 14;
+  stroke-linecap: round;
+}
+/* El puntito que marca el resultado exacto sobre el arco de zonas.
+   Su posición (cx, cy) y color los mueve app.js con JavaScript puro
+   (marcador.setAttribute) — aquí en CSS solo se define cómo se ve. */
+.arco-marcador {
+  stroke: #ffffff;
+  stroke-width: 2.5;
+  transition: cx 0.25s ease, cy 0.25s ease, fill 0.25s ease;
+}
+.arco-centro {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+.arco-valor {
+  font-family: var(--fuente-display);
+  font-weight: 600;
+  font-size: clamp(34px, 8vh, 54px);
+  color: var(--color-texto);
+  line-height: 1;
+}
+.arco-unidad {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+}
+
+.etiqueta-resultado {
+  margin: 8px 0 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-texto);
+  text-align: center;
+}
+.nota-estimacion {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--color-texto-suave);
+}
+.categoria-imc {
+  margin: 3px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  transition: color 0.25s ease;
+}
+.nota-metodo {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--color-primario-suave);
+  text-align: center;
+  max-width: 280px;
+}
+.peso-ideal {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: var(--color-texto-suave);
+  text-align: center;
+}
+.diferencia-peso {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-texto);
+  text-align: center;
+}
+
+/* Campos de medidas */
+.campos-medidas {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.campo-etiqueta {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-texto-suave);
+}
+.aviso-campo {
+  font-size: 11px;
+  font-weight: 600;
+  color: #c9634a;
+  min-height: 0;
+}
+.aviso-campo:empty {
+  display: none;
+}
+.campo-input-wrap {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--color-borde);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--color-superficie);
+}
+.campo-input-wrap:focus-within {
+  border-color: var(--color-primario);
+}
+.campo-input-wrap input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-family: var(--fuente-ui);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-texto);
+  background: transparent;
+  width: 100%;
+  -moz-appearance: textfield;
+}
+.campo-input-wrap input::-webkit-outer-spin-button,
+.campo-input-wrap input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.campo-unidad {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+}
+
+/* Espacio reservado para publicidad, fijo al fondo de la pantalla de fórmula */
+.espacio-anuncio {
+  height: 52px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-borde);
+  background: var(--color-superficie);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.espacio-anuncio span {
+  font-size: 11px;
+  color: var(--color-texto-suave);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
