@@ -276,3 +276,93 @@ FormulaTFG.zonas = [
   { hasta: 90, nombre: 'G2 — Levemente disminuida', rango: '60 – 89', color: '#4a9b6e' },
   { hasta: Infinity, nombre: 'G1 — Normal o alta', rango: '≥ 90', color: '#4a9b6e' },
 ];
+
+// ---------------------------------------------------------
+// PAM — presión arterial media, adultos. Requiere presión
+// sistólica y diastólica (mmHg). No depende de edad ni sexo.
+//
+// PAM = (PAS + 2×PAD) / 3 — fórmula estándar citada de forma
+// consistente en fuentes clínicas (Clínica Universidad de
+// Navarra, AccessMedicina/McGraw Hill, Wikipedia ES, etc.).
+// Representa la presión promedio de perfusión de los órganos
+// durante todo el ciclo cardíaco, no solo el pico sistólico.
+//
+// Rango normal: 70–100 mmHg (convergencia entre varias fuentes
+// clínicas). Por debajo de 60 mmHg, la perfusión de órganos
+// vitales se considera comprometida — por eso se agrega un
+// aviso aparte en ese umbral, no solo la zona de color.
+// ---------------------------------------------------------
+class FormulaPAM {
+  calcular({ sistolica, diastolica }) {
+    return (sistolica + 2 * diastolica) / 3;
+  }
+
+  categoria(pam) {
+    const zonas = FormulaPAM.zonas;
+    return zonas.find((zona) => pam < zona.hasta) || zonas[zonas.length - 1];
+  }
+}
+
+FormulaPAM.zonas = [
+  { hasta: 70, nombre: 'Baja', rango: '< 70', color: '#7fa8c9' },
+  { hasta: 100, nombre: 'Normal', rango: '70 – 100', color: '#4a9b6e' },
+  { hasta: Infinity, nombre: 'Elevada', rango: '> 100', color: '#c9634a' },
+];
+
+// ---------------------------------------------------------
+// Escala de Glasgow (Glasgow Coma Scale / ECG) — valora nivel
+// de consciencia en adultos, sumando 3 subescalas observables.
+//
+// Fuente: Teasdale G, Jennett B. "Assessment of coma and
+// impaired consciousness: a practical scale." Lancet 1974;
+// 2:81-84 — la publicación original, vigente internacionalmente
+// desde entonces (versión numérica de 1977, la que se usa hoy).
+//
+// A diferencia de las demás fórmulas de este archivo, aquí NO
+// hay ninguna cuenta que hacer — el "cálculo" es sumar 3 números
+// que ya vienen fijos por la propia escala, elegidos por
+// observación clínica, no medidos con instrumento.
+// ---------------------------------------------------------
+class FormulaGlasgow {
+  calcular({ ocular, verbal, motora }) {
+    return ocular + verbal + motora;
+  }
+
+  categoria(total) {
+    const zonas = FormulaGlasgow.zonas;
+    return zonas.find((zona) => total <= zona.hasta) || zonas[zonas.length - 1];
+  }
+}
+
+// Cada opción trae su puntaje oficial — el orden aquí es el orden
+// en que se muestran en pantalla (de mejor a peor respuesta).
+FormulaGlasgow.opcionesOcular = [
+  { puntos: 4, texto: 'Espontánea' },
+  { puntos: 3, texto: 'A órdenes verbales' },
+  { puntos: 2, texto: 'A estímulo doloroso' },
+  { puntos: 1, texto: 'No hay respuesta' },
+];
+FormulaGlasgow.opcionesVerbal = [
+  { puntos: 5, texto: 'Orientada' },
+  { puntos: 4, texto: 'Confusa' },
+  { puntos: 3, texto: 'Palabras inapropiadas' },
+  { puntos: 2, texto: 'Sonidos incomprensibles' },
+  { puntos: 1, texto: 'No hay respuesta' },
+];
+FormulaGlasgow.opcionesMotora = [
+  { puntos: 6, texto: 'Obedece órdenes' },
+  { puntos: 5, texto: 'Localiza el dolor' },
+  { puntos: 4, texto: 'Retira al dolor' },
+  { puntos: 3, texto: 'Flexión anormal' },
+  { puntos: 2, texto: 'Respuesta en extensión' },
+  { puntos: 1, texto: 'No hay movimientos' },
+];
+
+// hasta = puntaje MÁXIMO de cada categoría (a diferencia de las
+// tablas de IMC/TFG, que usan "hasta" como el primer valor de la
+// SIGUIENTE categoría) — por eso categoria() usa "<=" en vez de "<".
+FormulaGlasgow.zonas = [
+  { hasta: 8, nombre: 'Grave', rango: '3 – 8', color: '#c9634a', interpretacion: 'Compromiso severo del estado de consciencia — requiere atención médica inmediata.' },
+  { hasta: 12, nombre: 'Moderado', rango: '9 – 12', color: '#d4914a', interpretacion: 'Alteración moderada del estado de consciencia — requiere vigilancia estrecha.' },
+  { hasta: 15, nombre: 'Leve', rango: '13 – 15', color: '#4a9b6e', interpretacion: 'Alteración leve o sin alteraciones significativas del estado de consciencia.' },
+];

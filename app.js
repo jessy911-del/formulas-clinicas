@@ -30,6 +30,8 @@ const FORMULAS = {
   imc:    { titulo: 'IMC', render: renderIMC },
   pc:     { titulo: 'PC', render: renderPC },
   tfg:    { titulo: 'Tasa de Filtración Glomerular', render: renderTFG },
+  pam:    { titulo: 'Presión Arterial Media', render: renderPAM },
+  glasgow: { titulo: 'Escala de Glasgow', render: renderGlasgow },
 };
 
 // Elementos que YA EXISTEN en index.html desde el inicio (no los
@@ -75,6 +77,37 @@ function anguloParaValor(valor, min, max) {
   // un valor fuera de rango no mande el punto fuera del arco dibujado.
   const proporcion = Math.min(1, Math.max(0, (valor - min) / (max - min)));
   return 180 - proporcion * 180;
+}
+
+// Antes esta función "recortaba" el valor a la fuerza en cuanto se
+// pasaba del máximo (ej. escribir 1000 se volvía 120 al instante).
+// Fernando lo probó y le pareció incómodo: si por error tecleas un
+// dígito de más, te reescribe TODO el número a otra cosa, no solo el
+// dígito sobrante — es fácil sentir que el campo "se corrigió solo"
+// sin saber por qué. Se cambió el mecanismo completo: ahora el tope
+// de cifras lo pone el atributo maxlength de cada <input> (que sí
+// funciona en type="text", a diferencia de type="number") — una vez
+// que se alcanza, el navegador simplemente ya no acepta más teclas,
+// sin reescribir nada de lo que ya estaba escrito.
+//
+// Esta función ya NO limita cantidades — solo limpia caracteres que
+// no sean números o el punto decimal (por si se pega texto con
+// letras, por ejemplo). Nunca cambia la magnitud de lo que la
+// persona ya tecleó, solo quita lo que no es un número válido.
+function sanitizarEntradaNumerica(campo, permiteDecimal) {
+  const filtro = permiteDecimal ? /[^0-9.]/g : /[^0-9]/g;
+  let valor = campo.value.replace(filtro, '');
+  if (permiteDecimal) {
+    // Solo se permite UN punto decimal — si ya hay uno y la persona
+    // teclea otro, se ignora el segundo (y los siguientes).
+    const primerPunto = valor.indexOf('.');
+    if (primerPunto !== -1) {
+      valor = valor.slice(0, primerPunto + 1) + valor.slice(primerPunto + 1).replace(/\./g, '');
+    }
+  }
+  if (valor !== campo.value) {
+    campo.value = valor;
+  }
 }
 
 // Guarda la función de reinicio de la fórmula actualmente abierta,
@@ -151,25 +184,31 @@ function renderRabito(contenedor) {
         <label class="campo">
           <span class="campo-etiqueta">Circunferencia de brazo</span>
           <div class="campo-input-wrap">
-            <input type="number" inputmode="decimal" id="input-cb" placeholder="0.0" min="0" step="0.1" max="100">
+            <input type="text" inputmode="decimal" id="input-cb" placeholder="0.0" maxlength="5">
             <span class="campo-unidad">cm</span>
           </div>
         </label>
         <label class="campo">
           <span class="campo-etiqueta">Circunferencia abdominal</span>
           <div class="campo-input-wrap">
-            <input type="number" inputmode="decimal" id="input-ca" placeholder="0.0" min="0" step="0.1" max="250">
+            <input type="text" inputmode="decimal" id="input-ca" placeholder="0.0" maxlength="5">
             <span class="campo-unidad">cm</span>
           </div>
         </label>
         <label class="campo">
           <span class="campo-etiqueta">Circunferencia de pantorrilla</span>
           <div class="campo-input-wrap">
-            <input type="number" inputmode="decimal" id="input-cp" placeholder="0.0" min="0" step="0.1" max="100">
+            <input type="text" inputmode="decimal" id="input-cp" placeholder="0.0" maxlength="5">
             <span class="campo-unidad">cm</span>
           </div>
         </label>
       </div>
+
+      ${construirInfoFuente([
+        '<strong>Peso(kg) = 0.5759×CB + 0.5263×CA + 1.2452×CP − 4.8689×Sexo − 32.9241</strong> (Sexo: 1 = hombre, 2 = mujer).',
+        'Estima el peso de pacientes que no se pueden pesar en báscula (postrados, no ambulatorios), usando solo cinta métrica: CB, CA y CP son las circunferencias de brazo, abdominal y pantorrilla.',
+        'El resultado es una estimación poblacional, no un peso exacto — no sustituye una báscula cuando esté disponible.',
+      ])}
     </div>
   `;
 
@@ -214,7 +253,7 @@ function renderRabito(contenedor) {
   // se vuelve a calcular todo — así el resultado se actualiza en vivo,
   // sin necesidad de un botón "Calcular".
   [inputCB, inputCA, inputCP].forEach((campo) => {
-    campo.addEventListener('input', actualizar);
+    campo.addEventListener('input', () => { sanitizarEntradaNumerica(campo, true); actualizar(); });
   });
 
   function actualizar() {
@@ -278,6 +317,20 @@ function volverAlMenu() {
 
 // Dibuja el arco de fondo como 3 tercios iguales (180°, 120°, 60°, 0°),
 // con los colores recibidos en orden de izquierda a derecha.
+// Arma el HTML de la sección plegable "Sobre esta fórmula" que
+// llevan las 6 pantallas de fórmula al final — recibe uno o más
+// párrafos ya armados (con <strong> donde haga falta resaltar) y
+// los mete en un <details> nativo, colapsado por default.
+function construirInfoFuente(parrafos) {
+  return `
+    <details class="info-fuente">
+      <summary>ℹ️ Sobre esta fórmula</summary>
+      <div class="info-fuente-contenido">
+        ${parrafos.map((p) => `<p>${p}</p>`).join('')}
+      </div>
+    </details>`;
+}
+
 function construirTresZonasSvg(colores) {
   const angulos = [180, 120, 60, 0];
   return colores
@@ -386,14 +439,14 @@ function renderIMC(contenedor) {
         <label class="campo">
           <span class="campo-etiqueta">Edad</span>
           <div class="campo-input-wrap">
-            <input type="number" inputmode="numeric" id="input-edad" placeholder="0" min="0" step="1" max="120">
+            <input type="text" inputmode="numeric" id="input-edad" placeholder="0" maxlength="3">
             <span class="campo-unidad">años</span>
           </div>
         </label>
         <label class="campo">
           <span class="campo-etiqueta">Altura</span>
           <div class="campo-input-wrap">
-            <input type="number" inputmode="numeric" id="input-altura" placeholder="0" min="0" step="1" max="272">
+            <input type="text" inputmode="numeric" id="input-altura" placeholder="0" maxlength="3">
             <span class="campo-unidad">cm</span>
           </div>
           <span class="aviso-campo" id="aviso-altura"></span>
@@ -401,11 +454,17 @@ function renderIMC(contenedor) {
         <label class="campo">
           <span class="campo-etiqueta">Peso</span>
           <div class="campo-input-wrap">
-            <input type="number" inputmode="decimal" id="input-peso" placeholder="0.0" min="0" step="0.1" max="400">
+            <input type="text" inputmode="decimal" id="input-peso" placeholder="0.0" maxlength="5">
             <span class="campo-unidad">kg</span>
           </div>
         </label>
       </div>
+
+      ${construirInfoFuente([
+        '<strong>IMC = peso(kg) ÷ altura(m)²</strong>. La clasificación usa 3 tablas distintas, elegidas automáticamente según la edad — no se compara a un adulto joven con la misma tabla que a un niño o un adulto mayor.',
+        '<strong>Niños y adolescentes (2-19 años):</strong> tabla OMS 2007, por edad y sexo. <strong>Adultos (20-59 años):</strong> clasificación estándar OMS, con los 3 grados de obesidad. <strong>Adultos mayores (60+):</strong> tabla oficial del IMSS (GPC-095-24), porque el rango normal cambia en la vejez.',
+        'Los cortes de las 3 tablas se verificaron directamente contra las tablas oficiales del IMSS y de la OMS.',
+      ])}
     </div>
   `;
 
@@ -446,9 +505,10 @@ function renderIMC(contenedor) {
     actualizar();
   });
 
-  [inputEdad, inputAltura, inputPeso].forEach((campo) => {
-    campo.addEventListener('input', actualizar);
+  [inputEdad, inputAltura].forEach((campo) => {
+    campo.addEventListener('input', () => { sanitizarEntradaNumerica(campo, false); actualizar(); });
   });
+  inputPeso.addEventListener('input', () => { sanitizarEntradaNumerica(inputPeso, true); actualizar(); });
 
   function actualizar() {
     const edadNum = parseFloat(inputEdad.value);
@@ -619,7 +679,7 @@ function renderPC(contenedor) {
         <label class="campo">
           <span class="campo-etiqueta">Edad</span>
           <div class="campo-input-wrap">
-            <input type="number" inputmode="numeric" id="input-edad-pc" placeholder="0" min="0" step="1" max="19">
+            <input type="text" inputmode="numeric" id="input-edad-pc" placeholder="0" maxlength="2">
             <span class="campo-unidad">años</span>
           </div>
           <span class="aviso-campo" id="aviso-edad-pc"></span>
@@ -627,11 +687,17 @@ function renderPC(contenedor) {
         <label class="campo">
           <span class="campo-etiqueta">Circunferencia de brazo</span>
           <div class="campo-input-wrap">
-            <input type="number" inputmode="decimal" id="input-cmb" placeholder="0.0" min="0" step="0.1" max="60">
+            <input type="text" inputmode="decimal" id="input-cmb" placeholder="0.0" maxlength="4">
             <span class="campo-unidad">cm</span>
           </div>
         </label>
       </div>
+
+      ${construirInfoFuente([
+        '<strong>GMFCS I-III (camina, con o sin apoyo): Peso(kg) = 2.52×CMB + 1.19×Edad − 32.</strong> <strong>GMFCS IV-V (no camina): Peso(kg) = 2.02×CMB + 0.97×Edad − 22.5</strong>, donde CMB es la circunferencia media de brazo.',
+        'Estimación de peso específica para niños y adolescentes con parálisis cerebral (2-19 años) — usa una ecuación distinta según el nivel de movilidad GMFCS, porque la composición corporal cambia bastante entre quien camina y quien no.',
+        'Los propios autores aclaran que las ecuaciones son adecuadas a nivel poblacional, y deben usarse con precaución como único dato en decisiones individuales.',
+      ])}
     </div>
   `;
 
@@ -663,9 +729,8 @@ function renderPC(contenedor) {
     actualizar();
   });
 
-  [inputEdad, inputCMB].forEach((campo) => {
-    campo.addEventListener('input', actualizar);
-  });
+  inputEdad.addEventListener('input', () => { sanitizarEntradaNumerica(inputEdad, false); actualizar(); });
+  inputCMB.addEventListener('input', () => { sanitizarEntradaNumerica(inputCMB, true); actualizar(); });
 
   function actualizar() {
     const edad = parseFloat(inputEdad.value);
@@ -769,7 +834,7 @@ function renderTFG(contenedor) {
         <label class="campo">
           <span class="campo-etiqueta">Edad</span>
           <div class="campo-input-wrap">
-            <input type="number" inputmode="numeric" id="input-edad-tfg" placeholder="0" min="0" step="1" max="120">
+            <input type="text" inputmode="numeric" id="input-edad-tfg" placeholder="0" maxlength="3">
             <span class="campo-unidad">años</span>
           </div>
           <span class="aviso-campo" id="aviso-edad-tfg"></span>
@@ -777,11 +842,18 @@ function renderTFG(contenedor) {
         <label class="campo">
           <span class="campo-etiqueta">Creatinina sérica</span>
           <div class="campo-input-wrap">
-            <input type="number" inputmode="decimal" id="input-creatinina" placeholder="0.00" min="0" step="0.01" max="25">
+            <input type="text" inputmode="decimal" id="input-creatinina" placeholder="0.00" maxlength="5">
             <span class="campo-unidad">mg/dL</span>
           </div>
         </label>
       </div>
+
+      ${construirInfoFuente([
+        '<strong>TFG = 142 × mín(Cr/κ, 1)^α × máx(Cr/κ, 1)^−1.2 × 0.9938^Edad × (1.012 si es mujer)</strong>, donde Cr es la creatinina sérica, κ = 0.7 (mujeres) o 0.9 (hombres), y α = −0.241 (mujeres) o −0.302 (hombres).',
+        'Función renal estimada con la ecuación <strong>CKD-EPI 2021</strong> (sin coeficiente de raza) — la misma que usa actualmente el Protocolo Nacional de Atención Médica de México (PRONAM) para Enfermedad Renal Crónica.',
+        'Clasificada en 5 estadios (G1 a G5) según los cortes oficiales de KDIGO.',
+        'Válida solo para adultos (18+) — en niños la función renal se calcula distinto (fórmula de Schwartz, no incluida en esta app).',
+      ])}
     </div>
   `;
 
@@ -816,9 +888,8 @@ function renderTFG(contenedor) {
     actualizar();
   });
 
-  [inputEdad, inputCreatinina].forEach((campo) => {
-    campo.addEventListener('input', actualizar);
-  });
+  inputEdad.addEventListener('input', () => { sanitizarEntradaNumerica(inputEdad, false); actualizar(); });
+  inputCreatinina.addEventListener('input', () => { sanitizarEntradaNumerica(inputCreatinina, true); actualizar(); });
 
   function actualizar() {
     const edad = parseFloat(inputEdad.value);
@@ -883,6 +954,243 @@ function renderTFG(contenedor) {
     inputEdad.value = '';
     inputCreatinina.value = '';
     avisoEdad.textContent = '';
+    actualizar();
+  };
+}
+
+const PAM_MIN = 40;
+const PAM_MAX = 160;
+const PAM_COLORES = ['#7fa8c9', '#4a9b6e', '#c9634a'];
+
+// Pantalla de Presión Arterial Media. Es la más simple de las 5:
+// solo 2 campos, sin sexo ni edad, porque la fórmula no depende de
+// ninguno de los dos — misma estructura que renderTFG, pero sin el
+// selector de sexo ni las validaciones de edad.
+function renderPAM(contenedor) {
+  const zonasSvgInicial = construirTresZonasSvg(PAM_COLORES);
+
+  contenedor.innerHTML = `
+    <div class="pantalla-formula-int">
+      <div class="grupo-resultado">
+        <div class="arco-resultado">
+          <svg class="arco-svg" viewBox="0 0 200 116" preserveAspectRatio="xMidYMid meet">
+            <g>${zonasSvgInicial}</g>
+            <circle class="arco-marcador" id="marcador-pam" r="6" cx="20" cy="106" fill="var(--color-texto-suave)" />
+          </svg>
+          <div class="arco-centro">
+            <span class="arco-valor" id="valor-pam">--</span>
+            <span class="arco-unidad">mmHg</span>
+          </div>
+        </div>
+        <p class="etiqueta-resultado">Presión Arterial Media</p>
+        <p class="categoria-imc" id="categoria-pam">Completa los datos</p>
+        <p class="diferencia-peso" id="nota-pam"></p>
+      </div>
+
+      <div class="campos-medidas">
+        <label class="campo">
+          <span class="campo-etiqueta">Presión sistólica</span>
+          <div class="campo-input-wrap">
+            <input type="text" inputmode="numeric" id="input-sistolica" placeholder="0" maxlength="3">
+            <span class="campo-unidad">mmHg</span>
+          </div>
+        </label>
+        <label class="campo">
+          <span class="campo-etiqueta">Presión diastólica</span>
+          <div class="campo-input-wrap">
+            <input type="text" inputmode="numeric" id="input-diastolica" placeholder="0" maxlength="3">
+            <span class="campo-unidad">mmHg</span>
+          </div>
+        </label>
+      </div>
+
+      ${construirInfoFuente([
+        '<strong>PAM = (Sistólica + 2×Diastólica) ÷ 3</strong> — representa la presión promedio de perfusión de los órganos durante todo el ciclo cardíaco, no solo el pico sistólico.',
+        'El rango normal (70-100 mmHg) surge de varias fuentes clínicas consistentes entre sí. Por debajo de 60 mmHg, la perfusión de órganos vitales se considera comprometida.',
+      ])}
+    </div>
+  `;
+
+  const formulaPAM = new FormulaPAM();
+  const inputSistolica = contenedor.querySelector('#input-sistolica');
+  const inputDiastolica = contenedor.querySelector('#input-diastolica');
+  const valorPAM = contenedor.querySelector('#valor-pam');
+  const categoriaPAM = contenedor.querySelector('#categoria-pam');
+  const notaPAM = contenedor.querySelector('#nota-pam');
+  const marcador = contenedor.querySelector('#marcador-pam');
+
+  // Marcador arranca en el extremo izquierdo (gris neutro) — mismo
+  // patrón que IMC/TFG para el bug del marcador residual.
+  function resetMarcador() {
+    marcador.setAttribute('cx', 20);
+    marcador.setAttribute('cy', 106);
+    marcador.setAttribute('fill', 'var(--color-texto-suave)');
+  }
+
+  [inputSistolica, inputDiastolica].forEach((campo) => {
+    campo.addEventListener('input', () => { sanitizarEntradaNumerica(campo, false); actualizar(); });
+  });
+
+  function actualizar() {
+    const sistolica = parseFloat(inputSistolica.value);
+    const diastolica = parseFloat(inputDiastolica.value);
+    const datosCompletos = !isNaN(sistolica) && sistolica > 0 && !isNaN(diastolica) && diastolica > 0;
+
+    if (!datosCompletos) {
+      valorPAM.textContent = '--';
+      categoriaPAM.textContent = 'Completa los datos';
+      categoriaPAM.style.color = 'var(--color-texto-suave)';
+      notaPAM.textContent = '';
+      resetMarcador();
+      return;
+    }
+
+    const pam = formulaPAM.calcular({ sistolica, diastolica });
+    const zona = formulaPAM.categoria(pam);
+    const { limite1, limite2 } = limitesDeTresZonas(FormulaPAM.zonas);
+
+    valorPAM.textContent = pam.toFixed(0);
+    categoriaPAM.textContent = `${zona.nombre} (${zona.rango})`;
+    categoriaPAM.style.color = zona.color;
+
+    // Aviso clínico aparte del color de zona: varias fuentes coinciden
+    // en que por debajo de 60 mmHg la perfusión de órganos vitales ya
+    // se considera comprometida — un umbral más grave que el simple
+    // "está por debajo de lo normal" que ya marca el color azul.
+    notaPAM.textContent = pam < 60
+      ? 'Por debajo de 60 mmHg: la perfusión de órganos vitales puede estar comprometida.'
+      : '';
+
+    const angulo = anguloParaCategoria(pam, limite1, limite2, PAM_MIN, PAM_MAX);
+    const punto = puntoEnArco(100, 106, 80, angulo);
+    marcador.setAttribute('cx', punto.x);
+    marcador.setAttribute('cy', punto.y);
+    marcador.setAttribute('fill', zona.color);
+  }
+
+  return function reiniciar() {
+    inputSistolica.value = '';
+    inputDiastolica.value = '';
+    actualizar();
+  };
+}
+
+// Pantalla de Escala de Glasgow.
+// (.campo-lista) a partir del arreglo de opciones de formulas.js —
+// evita repetir el mismo bloque de HTML 3 veces a mano para
+// ocular/verbal/motora.
+function construirListaOpciones(id, opciones) {
+  const filas = opciones
+    .map(
+      (op) => `
+        <button class="opcion-lista" type="button" data-puntos="${op.puntos}" aria-pressed="false">
+          <span>${op.texto}</span>
+          <span class="opcion-lista-puntaje">${op.puntos}</span>
+        </button>`
+    )
+    .join('');
+  return `<div class="campo-lista" id="${id}">${filas}</div>`;
+}
+
+// Pantalla de Escala de Glasgow. No tiene campos numéricos —
+// son 3 listas de opciones fijas (ocular/verbal/motora) que se
+// suman. A diferencia de las demás pantallas, aquí NO hay arco:
+// solo 13 valores posibles existen (3 a 15), así que un arco no
+// aporta nada que el número y el texto de categoría no digan ya
+// — decisión explícita de Fernando tras ver la primera versión.
+function renderGlasgow(contenedor) {
+  contenedor.innerHTML = `
+    <div class="pantalla-formula-int">
+      <div class="grupo-resultado">
+        <div class="resultado-simple">
+          <span class="arco-valor" id="valor-glasgow">--</span>
+        </div>
+        <p class="etiqueta-resultado">Escala de Glasgow</p>
+        <p class="categoria-imc" id="categoria-glasgow">Completa los 3 criterios</p>
+        <p class="diferencia-peso" id="interpretacion-glasgow"></p>
+      </div>
+
+      <div class="campos-medidas">
+        <div class="campo">
+          <span class="campo-etiqueta">Apertura ocular</span>
+          ${construirListaOpciones('lista-ocular', FormulaGlasgow.opcionesOcular)}
+        </div>
+        <div class="campo">
+          <span class="campo-etiqueta">Respuesta verbal</span>
+          ${construirListaOpciones('lista-verbal', FormulaGlasgow.opcionesVerbal)}
+        </div>
+        <div class="campo">
+          <span class="campo-etiqueta">Respuesta motora</span>
+          ${construirListaOpciones('lista-motora', FormulaGlasgow.opcionesMotora)}
+        </div>
+      </div>
+
+      ${construirInfoFuente([
+        '<strong>Glasgow = Apertura ocular (1-4) + Respuesta verbal (1-5) + Respuesta motora (1-6)</strong>, con un puntaje total de 3 a 15.',
+        'Desarrollada en 1974 por los neurocirujanos Graham Teasdale y Bryan Jennett (Instituto de Ciencias Neurológicas de Glasgow, Escocia) — es el estándar internacional para valorar el nivel de consciencia.',
+        'No requiere ningún instrumento de medición, solo observación clínica directa.',
+      ])}
+    </div>
+  `;
+
+  const formulaGlasgow = new FormulaGlasgow();
+  const listaOcular = contenedor.querySelector('#lista-ocular');
+  const listaVerbal = contenedor.querySelector('#lista-verbal');
+  const listaMotora = contenedor.querySelector('#lista-motora');
+  const valorGlasgow = contenedor.querySelector('#valor-glasgow');
+  const categoriaGlasgow = contenedor.querySelector('#categoria-glasgow');
+  const interpretacionGlasgow = contenedor.querySelector('#interpretacion-glasgow');
+
+  let ocularSel = null;
+  let verbalSel = null;
+  let motoraSel = null;
+
+  // Mismo patrón de delegación de eventos que sexo/GMFCS, pero
+  // ahora son 3 listas independientes — cada una se conecta igual,
+  // solo cambia a qué variable (ocularSel/verbalSel/motoraSel)
+  // guarda el puntaje elegido.
+  function conectarLista(lista, guardarSeleccion) {
+    lista.addEventListener('click', (evento) => {
+      const boton = evento.target.closest('.opcion-lista');
+      if (!boton) return;
+      guardarSeleccion(Number(boton.dataset.puntos));
+      lista.querySelectorAll('.opcion-lista').forEach((b) => { b.classList.remove('activo'); b.setAttribute('aria-pressed', 'false'); });
+      boton.classList.add('activo');
+      boton.setAttribute('aria-pressed', 'true');
+      actualizar();
+    });
+  }
+  conectarLista(listaOcular, (v) => { ocularSel = v; });
+  conectarLista(listaVerbal, (v) => { verbalSel = v; });
+  conectarLista(listaMotora, (v) => { motoraSel = v; });
+
+  function actualizar() {
+    const completo = ocularSel !== null && verbalSel !== null && motoraSel !== null;
+
+    if (!completo) {
+      valorGlasgow.textContent = '--';
+      categoriaGlasgow.textContent = 'Completa los 3 criterios';
+      categoriaGlasgow.style.color = 'var(--color-texto-suave)';
+      interpretacionGlasgow.textContent = '';
+      return;
+    }
+
+    const total = formulaGlasgow.calcular({ ocular: ocularSel, verbal: verbalSel, motora: motoraSel });
+    const zona = formulaGlasgow.categoria(total);
+
+    valorGlasgow.textContent = total;
+    categoriaGlasgow.textContent = `${zona.nombre} (${zona.rango})`;
+    categoriaGlasgow.style.color = zona.color;
+    interpretacionGlasgow.textContent = zona.interpretacion;
+  }
+
+  return function reiniciar() {
+    ocularSel = null;
+    verbalSel = null;
+    motoraSel = null;
+    [listaOcular, listaVerbal, listaMotora].forEach((lista) => {
+      lista.querySelectorAll('.opcion-lista').forEach((b) => { b.classList.remove('activo'); b.setAttribute('aria-pressed', 'false'); });
+    });
     actualizar();
   };
 }

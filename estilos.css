@@ -137,10 +137,26 @@ body::before {
 .lista-formulas {
   flex: 1;
   min-height: 0;
+  /* Sin esto, cuando las tarjetas no caben en el espacio asignado
+     por flex:1, el sobrante se sale visualmente por debajo de esta
+     caja en vez de quedar disponible con scroll — causaba que el
+     pie de página se superpusiera con la última tarjeta al crecer
+     la lista de fórmulas. Con overflow-y:auto, esta lista se
+     vuelve su propia región de scroll: la cabecera y el pie quedan
+     siempre visibles arriba/abajo, y las tarjetas se deslizan
+     independientes en medio. */
+  overflow-y: auto;
   padding: 20px 20px 8px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  /* Antes era "center" (se veía bien centrado con solo 4 tarjetas
+     en pantallas altas), pero con más fórmulas agregadas el
+     contenido ya no cabe en una pantalla — centrar contenido que
+     desborda hace que el pie de página termine superponiéndose con
+     la última tarjeta en vez de quedar debajo. "flex-start" crece
+     hacia abajo de forma predecible sin importar cuántas tarjetas
+     haya, y sigue viéndose bien con pocas gracias al gap. */
+  justify-content: flex-start;
   gap: 20px;
 }
 
@@ -295,7 +311,18 @@ body::before {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* Se probó "justify-content: safe center" para mantener el
+     centrado visual de las pantallas cortas (Rabito, IMC, etc.) sin
+     romper las largas (Glasgow) — pero al probarlo de verdad con
+     Playwright, no se comportó de forma confiable: el contenido de
+     Glasgow seguía quedando fuera de alcance con scroll, señal de
+     que "safe" no se puede dar por garantizado en todos los
+     navegadores/dispositivos reales. Se optó por "flex-start", la
+     misma solución ya verificada y funcionando en el hub — las
+     pantallas cortas ya no quedan perfectamente centradas en
+     pantallas muy altas, pero TODAS son 100% alcanzables con scroll,
+     sin excepción, en cualquier navegador. */
+  justify-content: flex-start;
   gap: 22px;
 }
 
@@ -379,6 +406,118 @@ body::before {
   min-height: 14px;
 }
 
+/* Variante en lista vertical de .campo-segmentado — para escalas con
+   opciones de texto largo (ej. Glasgow: "Localiza el dolor"), que no
+   caben bien en botones horizontales lado a lado. */
+.campo-lista {
+  display: flex;
+  flex-direction: column;
+  border: 1.5px solid var(--color-borde);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-superficie);
+}
+.opcion-lista {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 14px;
+  border: none;
+  border-top: 1.5px solid var(--color-borde);
+  background: transparent;
+  color: var(--color-texto);
+  font-family: var(--fuente-ui);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.opcion-lista:first-child {
+  border-top: none;
+}
+.opcion-lista-puntaje {
+  flex-shrink: 0;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 100px;
+  background: var(--color-fondo);
+  color: var(--color-texto-suave);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.opcion-lista.activo {
+  background: var(--color-secundario);
+  font-weight: 600;
+}
+.opcion-lista.activo .opcion-lista-puntaje {
+  background: var(--color-primario);
+  color: #ffffff;
+}
+
+/* Sección plegable de "Sobre esta fórmula" — usa <details>/<summary>
+   nativo de HTML (sin JS: el navegador ya sabe abrir/cerrar solo),
+   colapsada por default para no estorbar visualmente. */
+.info-fuente {
+  border: 1px solid var(--color-borde);
+  border-radius: 12px;
+  background: var(--color-superficie);
+  overflow: hidden;
+  /* Sin esto, dentro de .campos-medidas (que es flex-column), el
+     propio overflow:hidden de aquí arriba (necesario para las
+     esquinas redondeadas) le da permiso al navegador de "aplastar"
+     esta caja por debajo de su altura real de contenido cuando no
+     alcanza el espacio — pasaba en Glasgow, donde las 3 listas ya
+     ocupan mucho: la sección de información se comprimía a 2px de
+     alto, con el texto invisible aunque estuviera "abierta".
+     flex-shrink:0 la protege de ese aplastamiento; el contenedor
+     que sí debe crecer/encogerse es el scroll de #contenido-formula,
+     no esta caja. */
+  flex-shrink: 0;
+}
+.info-fuente summary {
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primario);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.info-fuente summary::-webkit-details-marker {
+  display: none;
+}
+.info-fuente summary::after {
+  content: '▾';
+  margin-left: auto;
+  transition: transform 0.15s ease;
+}
+.info-fuente[open] summary::after {
+  transform: rotate(180deg);
+}
+.info-fuente-contenido {
+  padding: 0 14px 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-texto-suave);
+}
+.info-fuente-contenido p {
+  margin: 0 0 8px;
+}
+.info-fuente-contenido p:last-child {
+  margin-bottom: 0;
+}
+.info-fuente-contenido strong {
+  color: var(--color-texto);
+}
+
 /* Arco de resultado
    clamp(mínimo, preferido, máximo): el tamaño "preferido" (46vh,
    8vh, etc. = % de la altura de pantalla) se usa mientras quede
@@ -441,6 +580,17 @@ body::before {
   font-size: clamp(34px, 8vh, 54px);
   color: var(--color-texto);
   line-height: 1;
+}
+
+/* Resultado simple, sin arco — para escalas de puntaje corto y sin
+   rango numérico continuo (ej. Glasgow: solo 13 valores posibles,
+   de 3 a 15), donde el arco no aporta nada que el texto no diga ya. */
+.resultado-simple {
+  text-align: center;
+  padding: 20px 0 8px;
+}
+.resultado-simple .arco-valor {
+  font-size: clamp(48px, 14vh, 76px);
 }
 .arco-unidad {
   font-size: 18px;
@@ -548,19 +698,3 @@ body::before {
   color: var(--color-texto-suave);
 }
 
-/* Espacio reservado para publicidad, fijo al fondo de la pantalla de fórmula */
-.espacio-anuncio {
-  height: 52px;
-  flex-shrink: 0;
-  border-top: 1px solid var(--color-borde);
-  background: var(--color-superficie);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.espacio-anuncio span {
-  font-size: 11px;
-  color: var(--color-texto-suave);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
