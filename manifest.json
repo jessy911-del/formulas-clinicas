@@ -1,7 +1,7 @@
 {
   "name": "Fórmulas Clínicas",
   "short_name": "Fórmulas Clínicas",
-  "description": "Calculadoras clínicas para peso estimado, IMC, parálisis cerebral y función renal, con tablas mexicanas (IMSS) donde aplica.",
+  "description": "Calculadoras clínicas para peso estimado, IMC, parálisis cerebral, función renal, presión arterial media y escala de Glasgow, con tablas mexicanas (IMSS) donde aplica.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
