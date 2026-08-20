@@ -158,5 +158,16 @@
 
 <script src="formulas.js"></script>
 <script src="app.js"></script>
+<script>
+  // Registra el service worker para que la app funcione sin internet
+  // después de la primera vez que se abre. Si el navegador no lo
+  // soporta (muy raro hoy en día), la app sigue funcionando igual,
+  // solo que sin el modo offline.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js');
+    });
+  }
+</script>
 </body>
 </html>
